@@ -125,21 +125,30 @@ def main(profile):
                     print(f"Error reading file {file}: {e}")
                     continue
 
-                chunks = chunk_text(content)
                 file_results = {}
 
                 for pillar in pillars:
                     print(f"  Analyzing {pillar}...")
-                    pillar_results = []
-                    for i, chunk in enumerate(chunks):
-                        try:
-                            output = analyze_with_bedrock(client, inference_profile_arn, chunk, pillar)
-                            pillar_results.append(output)
-                        except Exception as e:
-                            print(f"    Error analyzing chunk {i+1} for {pillar}: {e}")
-                            pillar_results.append({"error": str(e)})
-
-                    file_results[pillar] = pillar_results
+                    try:
+                        # If content is too large, chunk it but analyze each chunk separately
+                        if len(content) > 2000:
+                            chunks = chunk_text(content)
+                            pillar_results = []
+                            for i, chunk in enumerate(chunks):
+                                try:
+                                    output = analyze_with_bedrock(client, inference_profile_arn, chunk, pillar)
+                                    pillar_results.append(output)
+                                except Exception as e:
+                                    print(f"    Error analyzing chunk {i+1} for {pillar}: {e}")
+                                    pillar_results.append({"error": str(e)})
+                            file_results[pillar] = pillar_results
+                        else:
+                            # Analyze entire file content for this pillar
+                            output = analyze_with_bedrock(client, inference_profile_arn, content, pillar)
+                            file_results[pillar] = [output]
+                    except Exception as e:
+                        print(f"    Error analyzing {pillar}: {e}")
+                        file_results[pillar] = [{"error": str(e)}]
 
                 results[file] = file_results
 
