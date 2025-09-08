@@ -6,11 +6,6 @@ import boto3
 from git import Repo, InvalidGitRepositoryError
 import datetime
 
-def chunk_text(text, max_chars=2000):
-    chunks = []
-    for i in range(0, len(text), max_chars):
-        chunks.append(text[i:i+max_chars])
-    return chunks
 
 def load_prompt(pillar, code):
     filename = pillar.lower().replace(" ", "_") + ".txt"
@@ -130,22 +125,9 @@ def main(profile):
                 for pillar in pillars:
                     print(f"  Analyzing {pillar}...")
                     try:
-                        # If content is too large, chunk it but analyze each chunk separately
-                        if len(content) > 2000:
-                            chunks = chunk_text(content)
-                            pillar_results = []
-                            for i, chunk in enumerate(chunks):
-                                try:
-                                    output = analyze_with_bedrock(client, inference_profile_arn, chunk, pillar)
-                                    pillar_results.append(output)
-                                except Exception as e:
-                                    print(f"    Error analyzing chunk {i+1} for {pillar}: {e}")
-                                    pillar_results.append({"error": str(e)})
-                            file_results[pillar] = pillar_results
-                        else:
-                            # Analyze entire file content for this pillar
-                            output = analyze_with_bedrock(client, inference_profile_arn, content, pillar)
-                            file_results[pillar] = [output]
+                        # Analyze entire file content for this pillar
+                        output = analyze_with_bedrock(client, inference_profile_arn, content, pillar)
+                        file_results[pillar] = [output]
                     except Exception as e:
                         print(f"    Error analyzing {pillar}: {e}")
                         file_results[pillar] = [{"error": str(e)}]
